@@ -1,0 +1,121 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ── Users: buyer & supplier accounts ────────────────────────────────────
+model User {
+  id           String    @id @default(cuid())
+  email        String    @unique
+  passwordHash String
+  name         String
+  role         String // BUYER | SUPPLIER
+  businessName String    @default("")
+  location     String    @default("")
+  phone        String    @default("")
+  interests    String    @default("") // comma-separated procurement interests
+  supplierId   String? // link to Supplier row for SUPPLIER accounts
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  sessions     Session[]
+}
+
+// ── Sessions: bearer-token sessions ─────────────────────────────────────
+model Session {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+}
+
+// ── Password resets ─────────────────────────────────────────────────────
+model PasswordReset {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  userId    String
+  expiresAt DateTime
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
+
+// ── Suppliers: verified farms, cooperatives & aggregators ────────────────
+model Supplier {
+  id              String   @id @default(cuid())
+  code            String   @unique // e.g. SUP-1042
+  name            String
+  type            String // FARM | COOPERATIVE | AGGREGATOR | ESTATE
+  region          String
+  district        String
+  town            String
+  verified        Boolean  @default(false)
+  yearsOperating  Int      @default(0)
+  completedOrders Int      @default(0)
+  fulfilmentRate  Float    @default(0) // 0–1
+  responseTimeHrs Int      @default(24)
+  description     String   @default("")
+  imageUrl        String?
+  lat             Float    @default(7.0)
+  lon             Float    @default(-1.0)
+  supplies        Supply[]
+  createdAt       DateTime @default(now())
+}
+
+// ── Supply: a listed commodity lot available for sourcing ───────────────
+model Supply {
+  id               String    @id @default(cuid())
+  code             String    @unique // e.g. AKM-20491
+  name             String
+  category         String // VEGETABLE | GRAIN | TUBER | FRUIT | LEGUME
+  quantityKg       Int // currently available kg
+  totalQuantityKg  Int // original lot size kg
+  pricePerKg       Float
+  grade            String // GRADE_A | GRADE_B | FIELD_RUN
+  harvestStart     DateTime?
+  harvestEnd       DateTime?
+  description      String    @default("")
+  imageUrl         String
+  available        Boolean   @default(true)
+  deliveryAvailable Boolean  @default(true)
+  minOrderKg       Int       @default(50)
+  supplierId       String
+  supplier         Supplier  @relation(fields: [supplierId], references: [id])
+  orders           Order[]
+  createdAt        DateTime  @default(now())
+}
+
+// ── Orders: sourcing requests through the fulfilment journey ────────────
+model Order {
+  id             String       @id @default(cuid())
+  code           String       @unique // e.g. AKM-ORD-1042
+  buyerName      String
+  buyerCompany   String
+  buyerEmail     String    @default("")
+  supplyId       String
+  supply         Supply       @relation(fields: [supplyId], references: [id])
+  quantityKg     Int
+  unitPrice      Float // locked price per kg at request time
+  productValue   Float
+  deliveryFee    Float        @default(0)
+  deliveryMethod String // PICKUP | DELIVERY
+  destination    String
+  status         String // REQUESTED | CONFIRMED | PREPARING | READY | IN_TRANSIT | DELIVERED | CANCELLED
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  events         OrderEvent[]
+}
+
+// ── Order events: timestamped journey steps ─────────────────────────────
+model OrderEvent {
+  id        String   @id @default(cuid())
+  orderId   String
+  order     Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  status    String
+  note      String   @default("")
+  timestamp DateTime @default(now())
+}

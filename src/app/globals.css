@@ -1,0 +1,291 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-dm-sans);
+  --font-mono: var(--font-plex-mono);
+  --font-display: var(--font-fraunces);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+
+  /* ── Akuafo brand palette (static across themes) ─────────────── */
+  --color-forest: #1c4a36;
+  --color-forest-deep: #122e22;
+  --color-forest-mid: #2a6148;
+  --color-ink: #17211b;
+  --color-cream: #f7f3ea;
+  --color-cream-dim: #ede6d5;
+  --color-terracotta: #b85c33;
+  --color-terracotta-deep: #96451f;
+  --color-gold: #c89b5a;
+  --color-olive: #6b7f5e;
+  --color-olive-light: #93a583;
+  --color-paper: #fdfbf4;
+}
+
+:root {
+  --radius: 0.625rem; /* 10px — controls, small cards */
+  --background: #f7f3ea;
+  --foreground: #17211b;
+  --card: #fdfbf4;
+  --card-foreground: #17211b;
+  --popover: #fdfbf4;
+  --popover-foreground: #17211b;
+  --primary: #1c4a36;
+  --primary-foreground: #f7f3ea;
+  --secondary: #ede6d5;
+  --secondary-foreground: #1c4a36;
+  --muted: #ede6d5;
+  --muted-foreground: #5c6b5e;
+  --accent: #ede6d5;
+  --accent-foreground: #1c4a36;
+  --destructive: #b3372b;
+  --border: rgba(28, 74, 54, 0.16);
+  --input: rgba(28, 74, 54, 0.26);
+  --ring: #1c4a36;
+  --chart-1: #1c4a36;
+  --chart-2: #6b7f5e;
+  --chart-3: #b85c33;
+  --chart-4: #c89b5a;
+  --chart-5: #4c6355;
+  --sidebar: #fdfbf4;
+  --sidebar-foreground: #17211b;
+  --sidebar-primary: #1c4a36;
+  --sidebar-primary-foreground: #f7f3ea;
+  --sidebar-accent: #ede6d5;
+  --sidebar-accent-foreground: #1c4a36;
+  --sidebar-border: rgba(28, 74, 54, 0.16);
+  --sidebar-ring: #1c4a36;
+}
+
+/* Intentional warm-dark palette — designed, not inverted */
+.dark {
+  --background: #131c16;
+  --foreground: #ece7d8;
+  --card: #1a251e;
+  --card-foreground: #ece7d8;
+  --popover: #1a251e;
+  --popover-foreground: #ece7d8;
+  --primary: #ece7d8;
+  --primary-foreground: #17211b;
+  --secondary: #223028;
+  --secondary-foreground: #d9d4c3;
+  --muted: #223028;
+  --muted-foreground: #a5b2a0;
+  --accent: #223028;
+  --accent-foreground: #d9d4c3;
+  --destructive: #d96a5b;
+  --border: rgba(236, 231, 216, 0.15);
+  --input: rgba(236, 231, 216, 0.24);
+  --ring: #d9895b;
+  --chart-1: #93a583;
+  --chart-2: #c89b5a;
+  --chart-3: #d9895b;
+  --chart-4: #6b7f5e;
+  --chart-5: #d9d4c3;
+  --sidebar: #1a251e;
+  --sidebar-foreground: #ece7d8;
+  --sidebar-primary: #ece7d8;
+  --sidebar-primary-foreground: #17211b;
+  --sidebar-accent: #223028;
+  --sidebar-accent-foreground: #d9d4c3;
+  --sidebar-border: rgba(236, 231, 216, 0.15);
+  --sidebar-ring: #d9895b;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  html {
+    scroll-behavior: smooth;
+  }
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    text-rendering: optimizeLegibility;
+    font-feature-settings: "ss01" on;
+  }
+  ::selection {
+    background: #1c4a36;
+    color: #f7f3ea;
+  }
+  .dark ::selection {
+    background: #c89b5a;
+    color: #17211b;
+  }
+  :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+}
+
+/* ── Akuafo utilities ────────────────────────────────────────── */
+
+/* Uppercase micro label for section eyebrows & data keys */
+.ax-label {
+  font-family: var(--font-dm-sans);
+  font-weight: 600;
+  font-size: 0.6875rem;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+}
+
+/* Mono data figures (prices, quantities, codes) */
+.ax-data {
+  font-family: var(--font-plex-mono);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+
+/* Custom scrollbar for scrollable lists */
+.ax-scroll::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+.ax-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+.ax-scroll::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 3px;
+}
+.ax-scroll::-webkit-scrollbar-thumb:hover {
+  background: var(--muted-foreground);
+}
+.ax-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+
+/* Commodity ticker marquee */
+@keyframes ax-marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+.ax-marquee {
+  animation: ax-marquee 48s linear infinite;
+}
+.ax-marquee:hover {
+  animation-play-state: paused;
+}
+
+/* Animated supply-route dashes */
+@keyframes ax-dash {
+  to {
+    stroke-dashoffset: -24;
+  }
+}
+.ax-route {
+  animation: ax-dash 1.4s linear infinite;
+}
+
+/* Subtle rise-in for hero content */
+@keyframes ax-rise {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.ax-rise {
+  animation: ax-rise 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* Gentle pulse for selected map markers */
+@keyframes ax-pulse {
+  0% {
+    opacity: 0.5;
+    transform: scale(1);
+  }
+  70% {
+    opacity: 0;
+    transform: scale(2.1);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(2.1);
+  }
+}
+.ax-pulse {
+  animation: ax-pulse 1.8s ease-out infinite;
+  transform-origin: center;
+}
+
+/* Image reveal on load */
+.ax-img {
+  opacity: 0;
+  transform: scale(1.02);
+  transition:
+    opacity 0.6s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.9s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.ax-img.ax-img-loaded {
+  opacity: 1;
+  transform: scale(1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  .ax-marquee,
+  .ax-route,
+  .ax-rise,
+  .ax-pulse {
+    animation: none;
+  }
+  .ax-img {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

@@ -1,0 +1,54 @@
+# dependencies
+node_modules
+/.pnp
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
+
+# testing
+/coverage
+
+# next.js
+/.next/
+/out/
+next-env.d.ts
+
+# production
+/build
+
+# database (local sqlite file, if used)
+/db/*.db
+/db/*.db-journal
+
+# environment variables (secrets)
+.env
+.env.*
+!.env.example
+
+# logs
+*.log
+dev.log
+server.log
+
+# vercel
+.vercel
+
+# misc
+.DS_Store
+*.pem
+
+# sandbox / tooling artifacts (not part of the product)
+agent-ctx/
+worklog.md
+.zscripts/
+examples/
+mini-services/
+tests/
+download/
+skills/
+scripts/
+Caddyfile
+*.tsbuildinfo
