@@ -49,7 +49,9 @@ export function AuthShell({
         <div className="flex items-center justify-between px-6 pt-6 lg:hidden">
           <Logo />
         </div>
-        <div className="flex flex-1 items-center justify-center px-6 py-12 sm:py-16 lg:py-0">
+        {/* pb-32 keeps the primary CTA clear of the fixed mobile tab bar
+            (h-16 + safe-area) on tall forms like signup step 3. */}
+        <div className="flex flex-1 items-center justify-center px-6 pt-12 pb-32 sm:py-16 lg:py-0">
           <div className="w-full max-w-md">{children}</div>
         </div>
       </section>
