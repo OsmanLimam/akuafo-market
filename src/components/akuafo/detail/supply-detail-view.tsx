@@ -2,6 +2,7 @@
 
 import { useCallback, useState } from "react";
 import Image from "next/image";
+import { SupplyImage } from "../supply-image";
 import { useQuery } from "@tanstack/react-query";
 import { Bookmark, PackageX } from "lucide-react";
 import { useAkuafo } from "../store";
@@ -171,7 +172,7 @@ export function SupplyDetailView() {
             {/* Left, image + description */}
             <div className="lg:col-span-7">
               <div className="relative aspect-[4/3] overflow-hidden rounded-xl">
-                <Image
+                <SupplyImage
                   src={supply.imageUrl}
                   alt={`${supply.name} in ${supply.supplier.town}, ${supply.supplier.region}`}
                   fill

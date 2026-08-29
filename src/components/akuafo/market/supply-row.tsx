@@ -1,6 +1,6 @@
 "use client";
 
-import Image from "next/image";
+import { SupplyImage } from "../supply-image";
 import { format, isValid } from "date-fns";
 import { ArrowRight } from "lucide-react";
 import { useAkuafo } from "../store";
@@ -47,13 +47,12 @@ export function SupplyRow({ supply }: { supply: Supply }) {
       className="group flex w-full cursor-pointer items-center gap-4 border-b border-border p-4 text-left transition-colors hover:bg-forest/[0.04] focus-visible:bg-forest/[0.04] dark:hover:bg-cream/[0.05] dark:focus-visible:bg-cream/[0.05] sm:gap-6"
     >
       {/* Thumbnail */}
-      <span className="relative hidden h-[88px] w-[88px] shrink-0 overflow-hidden rounded-lg sm:block">
-        <Image
+      <span className="relative block h-16 w-16 shrink-0 overflow-hidden rounded-lg sm:h-[88px] sm:w-[88px]">
+        <SupplyImage
           src={supply.imageUrl}
           alt={`${supply.name} in ${supply.supplier.town}, ${supply.supplier.region}`}
           fill
-          sizes="88px"
-          className="object-cover"
+          sizes="(min-width: 640px) 88px, 64px"
         />
       </span>
 

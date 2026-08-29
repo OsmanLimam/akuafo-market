@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import Image from "next/image";
+import { SupplyImage } from "../supply-image";
 import { useQuery } from "@tanstack/react-query";
 import { format, isSameMonth, subMonths } from "date-fns";
 import { Bookmark, Map as MapIcon, Search, Sprout } from "lucide-react";
@@ -321,12 +321,11 @@ function BuyerDashboard() {
                           className="group flex cursor-pointer items-center gap-4 px-1 py-5 transition-colors hover:bg-forest/[0.03] dark:hover:bg-cream/[0.04] sm:gap-6"
                         >
                           <span className="relative block h-16 w-16 shrink-0 overflow-hidden rounded-lg border border-border">
-                            <Image
+                            <SupplyImage
                               src={o.supply.imageUrl}
                               alt={`${o.supply.name} in ${o.supply.supplier.town}, ${o.supply.supplier.region}`}
                               fill
                               sizes="64px"
-                              className="object-cover"
                             />
                           </span>
 

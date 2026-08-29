@@ -122,18 +122,24 @@ export const CATEGORY_LABEL: Record<string, string> = {
   TUBER: "Tubers & Roots",
   FRUIT: "Fruits",
   LEGUME: "Legumes",
+  OTHER: "Other / Specialty",
 };
 
+/** All 16 regions of Ghana. */
 export const GHANA_REGIONS = [
   "Ashanti",
+  "Bono",
   "Bono East",
   "Ahafo",
   "Eastern",
   "Volta",
+  "Oti",
   "Central",
   "Greater Accra",
   "Western",
+  "Western North",
   "Northern",
+  "Savannah",
   "North East",
   "Upper East",
   "Upper West",

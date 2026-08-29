@@ -95,21 +95,23 @@ export function Footer() {
               <p className="ax-label mb-4 text-cream/50">Contact</p>
               <address className="flex flex-col gap-3 text-sm not-italic leading-relaxed text-cream/80">
                 <span>
-                  Osman Limam
+                  Akuafo Market
                   <br />
                   KNUST, Kumasi, Ghana
                 </span>
                 <a
-                  href="mailto:osmanlimam083@gmail.com"
+                  href="mailto:hello@akuafo.market"
                   className="ax-data w-fit text-[13px] transition-colors hover:text-gold"
                 >
-                  osmanlimam083@gmail.com
+                  hello@akuafo.market
                 </a>
                 <a
-                  href="tel:+233536828150"
+                  href="https://wa.me/233536828150?text=Hello%20Akuafo%20Market"
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="ax-data w-fit text-[13px] transition-colors hover:text-gold"
                 >
-                  +233 53 682 8150
+                  Chat on WhatsApp
                 </a>
               </address>
             </div>

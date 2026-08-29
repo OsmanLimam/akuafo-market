@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
-import Image from "next/image";
+import { useRef, useState, type FormEvent } from "react";
+import { ImagePlus, Plus } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { format } from "date-fns";
@@ -22,6 +22,7 @@ import { useAkuafo } from "../store";
 import { useAuth } from "../auth-store";
 import { AuthGate } from "../auth-gate";
 import { CtaPrimary, Eyebrow } from "../ui";
+import { SupplyImage } from "../supply-image";
 import {
   CATEGORY_LABEL,
   formatCedis,
@@ -50,7 +51,7 @@ const COMMODITY_SUGGESTIONS = [
   "Red Onions",
 ];
 
-const CATEGORIES = ["VEGETABLE", "GRAIN", "TUBER", "FRUIT", "LEGUME"] as const;
+const CATEGORIES = ["VEGETABLE", "GRAIN", "TUBER", "FRUIT", "LEGUME", "OTHER"] as const;
 const GRADES = ["GRADE_A", "GRADE_B", "FIELD_RUN"] as const;
 
 const PRESET_IMAGES = [
@@ -205,6 +206,12 @@ function CreateListing() {
   const setView = useAkuafo((s) => s.setView);
   const queryClient = useQueryClient();
 
+  /* Photo upload + commodity suggestion state */
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
+  const [customImage, setCustomImage] = useState(false);
+  const [suggestOpen, setSuggestOpen] = useState(false);
+
   const supplierCode = user.supplierCode ?? null;
   const { data: supplier } = useQuery({
     queryKey: ["supplier", supplierCode],
@@ -291,6 +298,33 @@ function CreateListing() {
     });
   }
 
+  async function handleFileSelected(file: File | undefined) {
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      toast.error("That file is not an image", { description: "Choose a JPG, PNG or WebP photo." });
+      return;
+    }
+    if (file.size > 8 * 1024 * 1024) {
+      toast.error("Photo is too large", { description: "Images must be smaller than 8 MB." });
+      return;
+    }
+    setUploading(true);
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      const res = await authFetch("/api/uploads", { method: "POST", body: fd });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error ?? "Upload failed");
+      set("imageUrl", data.url as string);
+      setCustomImage(true);
+    } catch (err) {
+      toast.error("Couldn't upload photo", { description: (err as Error).message });
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  }
+
   const previewQty = parsePositive(form.quantityKg);
   const previewPrice = parsePositive(form.pricePerKg);
   const previewName = form.name.trim() || "Untitled lot";
@@ -298,6 +332,16 @@ function CreateListing() {
   const previewRegion = form.region || supplier?.region || "Region";
   const previewAlt =
     PRESET_IMAGES.find((i) => i.src === form.imageUrl)?.alt ?? `${previewName} photograph`;
+
+  /* Commodity suggestions: filter against the typed name; if it is not an
+     exact preset match, offer an explicit "add as new commodity" row so it
+     is obvious that free-typed commodities are accepted. */
+  const trimmedName = form.name.trim().toLowerCase();
+  const exactPreset = COMMODITY_SUGGESTIONS.some((s) => s.toLowerCase() === trimmedName);
+  const filteredSuggestions = COMMODITY_SUGGESTIONS.filter(
+    (s) => s.toLowerCase().includes(trimmedName) && s.toLowerCase() !== trimmedName,
+  );
+  const showAddSuggestion = trimmedName.length > 0 && !exactPreset;
 
   const submitting = publish.isPending || publish.isSuccess;
 
@@ -339,24 +383,59 @@ function CreateListing() {
                   id="listing-name"
                   label="Commodity name"
                   error={errors.name}
-                  hint="Start typing for common Ghanaian commodities."
+                  hint="Any commodity is welcome — search the suggestions or type your own."
                   className="sm:col-span-2"
                 >
-                  <Input
-                    id="listing-name"
-                    list="commodity-suggestions"
-                    value={form.name}
-                    onChange={(e) => set("name", e.target.value)}
-                    placeholder="e.g. Tomatoes"
-                    autoComplete="off"
-                    aria-invalid={!!errors.name}
-                    className={inputClass}
-                  />
-                  <datalist id="commodity-suggestions">
-                    {COMMODITY_SUGGESTIONS.map((s) => (
-                      <option key={s} value={s} />
-                    ))}
-                  </datalist>
+                  <div className="relative">
+                    <Input
+                      id="listing-name"
+                      value={form.name}
+                      onChange={(e) => set("name", e.target.value)}
+                      onFocus={() => setSuggestOpen(true)}
+                      onBlur={() => window.setTimeout(() => setSuggestOpen(false), 150)}
+                      placeholder="e.g. Tomatoes, Garden Eggs, Fresh Ginger…"
+                      autoComplete="off"
+                      aria-invalid={!!errors.name}
+                      className={inputClass}
+                    />
+                    {suggestOpen && (filteredSuggestions.length > 0 || showAddSuggestion) && (
+                      <div
+                        className="absolute inset-x-0 top-full z-30 mt-2 overflow-hidden rounded-lg border border-border bg-card shadow-lg"
+                        role="listbox"
+                        aria-label="Commodity suggestions"
+                      >
+                        {filteredSuggestions.map((s) => (
+                          <button
+                            key={s}
+                            type="button"
+                            role="option"
+                            aria-selected={false}
+                            onMouseDown={(e) => e.preventDefault()}
+                            onClick={() => {
+                              set("name", s);
+                              setSuggestOpen(false);
+                            }}
+                            className="block w-full cursor-pointer px-3.5 py-2.5 text-left text-sm text-ink transition-colors hover:bg-forest/5 dark:text-cream dark:hover:bg-cream/5"
+                          >
+                            {s}
+                          </button>
+                        ))}
+                        {showAddSuggestion && (
+                          <button
+                            type="button"
+                            role="option"
+                            aria-selected={false}
+                            onMouseDown={(e) => e.preventDefault()}
+                            onClick={() => setSuggestOpen(false)}
+                            className="flex w-full cursor-pointer items-center gap-2 border-t border-border px-3.5 py-2.5 text-left text-sm font-medium text-forest transition-colors hover:bg-forest/5 dark:text-olive-light dark:hover:bg-cream/5"
+                          >
+                            <Plus className="h-3.5 w-3.5" strokeWidth={1.75} aria-hidden />
+                            Add “{form.name.trim()}” as a new commodity
+                          </button>
+                        )}
+                      </div>
+                    )}
+                  </div>
                 </Field>
 
                 <Field id="listing-category" label="Category">
@@ -543,15 +622,64 @@ function CreateListing() {
             <fieldset className="border-t border-border pt-8">
               <legend className="ax-label text-foreground">Photograph</legend>
               <p className="mt-3 text-xs text-muted-foreground">
-                Choose the photograph that best represents this lot.
+                Upload a real photo of this lot — buyers respond to genuine produce. No photo handy?
+                Pick a stock image below.
               </p>
+
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => void handleFileSelected(e.target.files?.[0])}
+              />
+
+              {customImage ? (
+                <div className="mt-5 overflow-hidden rounded-lg border border-border">
+                  <div className="relative aspect-[16/9] w-full">
+                    <SupplyImage src={form.imageUrl} alt={`${previewName} photograph`} fill sizes="(min-width: 1024px) 58vw, 100vw" />
+                  </div>
+                  <div className="flex items-center justify-between gap-3 border-t border-border px-4 py-2.5">
+                    <span className="ax-label text-[10px] text-forest dark:text-olive-light">Your photo attached</span>
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      className="ax-label cursor-pointer text-[10px] text-terracotta-deep underline-offset-4 hover:underline dark:text-terracotta"
+                    >
+                      Replace
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={uploading}
+                  className="mt-5 flex h-36 w-full cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-forest/35 bg-forest/[0.03] text-center transition-colors hover:border-forest hover:bg-forest/[0.06] disabled:cursor-wait dark:border-cream/30 dark:bg-cream/[0.04] dark:hover:border-cream"
+                >
+                  {uploading ? (
+                    <span
+                      className="inline-block h-5 w-5 animate-spin rounded-full border-2 border-forest border-t-transparent dark:border-cream"
+                      aria-hidden
+                    />
+                  ) : (
+                    <ImagePlus className="h-6 w-6 text-forest dark:text-cream" strokeWidth={1.25} aria-hidden />
+                  )}
+                  <span className="ax-label text-[11px] text-forest dark:text-cream">
+                    {uploading ? "Processing photo…" : "Upload a photo"}
+                  </span>
+                  <span className="text-xs text-muted-foreground">Camera or gallery · JPG, PNG, WebP · up to 8 MB</span>
+                </button>
+              )}
+
+              <p className="ax-label mt-6 text-muted-foreground">Stock photos</p>
               <div
-                className="mt-5 grid grid-cols-4 gap-2"
+                className="mt-3 grid grid-cols-4 gap-2"
                 role="radiogroup"
-                aria-label="Listing photograph"
+                aria-label="Stock listing photographs"
               >
                 {PRESET_IMAGES.map((img) => {
-                  const selected = form.imageUrl === img.src;
+                  const selected = !customImage && form.imageUrl === img.src;
                   return (
                     <button
                       key={img.src}
@@ -559,7 +687,10 @@ function CreateListing() {
                       role="radio"
                       aria-checked={selected}
                       aria-label={img.alt}
-                      onClick={() => set("imageUrl", img.src)}
+                      onClick={() => {
+                        set("imageUrl", img.src);
+                        setCustomImage(false);
+                      }}
                       className={cn(
                         "relative aspect-square cursor-pointer overflow-hidden rounded-lg transition-all active:scale-[0.98]",
                         selected
@@ -567,12 +698,11 @@ function CreateListing() {
                           : "ring-2 ring-transparent hover:ring-forest/40 dark:hover:ring-cream/40",
                       )}
                     >
-                      <Image
+                      <SupplyImage
                         src={img.src}
                         alt={img.alt}
                         fill
                         sizes="(min-width: 1024px) 9vw, 22vw"
-                        className="object-cover"
                       />
                     </button>
                   );
@@ -601,12 +731,12 @@ function CreateListing() {
               <p className="ax-label text-muted-foreground">Live preview</p>
               <div className="rounded-xl border border-border bg-card">
                 <div className="relative aspect-[4/3] rounded-t-xl border-b border-border">
-                  <Image
+                  <SupplyImage
                     src={form.imageUrl}
                     alt={previewAlt}
                     fill
                     sizes="(min-width: 1024px) 40vw, 100vw"
-                    className="rounded-t-xl object-cover"
+                    className="rounded-t-xl"
                   />
                   <span className="ax-data absolute right-3 top-3 rounded-md bg-ink/60 px-2 py-1 text-[10px] text-cream">
                     AKM-205xx

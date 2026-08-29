@@ -20,10 +20,46 @@ import { ForgotPasswordView } from "@/components/akuafo/auth/forgot-view";
 import { ResetPasswordView } from "@/components/akuafo/auth/reset-view";
 import { AccountView } from "@/components/akuafo/account/account-view";
 import { InfoView } from "@/components/akuafo/info/info-view";
+import { applyPath, stateToPath } from "@/components/akuafo/url-sync";
 
 function AppBody() {
   const view = useAkuafo((s) => s.view);
   const reduced = useReducedMotion();
+
+  /* Deep links: restore the view from the URL on cold load, mirror every
+     view change into the address bar, and honour browser back/forward. */
+  useEffect(() => {
+    if (!applyPath(window.location.pathname)) {
+      history.replaceState(null, "", "/");
+    }
+
+    let applying = false;
+    const unsubscribe = useAkuafo.subscribe((s) => {
+      if (applying) return;
+      const path = stateToPath(s);
+      if (window.location.pathname !== path) {
+        history.pushState({ view: s.view }, "", path);
+      }
+    });
+
+    const onPop = () => {
+      applying = true;
+      if (!applyPath(window.location.pathname)) {
+        useAkuafo.getState().setView("landing");
+        history.replaceState(null, "", "/");
+      }
+      // The store updates above run synchronously; release after they settle.
+      Promise.resolve().then(() => {
+        applying = false;
+      });
+    };
+    window.addEventListener("popstate", onPop);
+
+    return () => {
+      unsubscribe();
+      window.removeEventListener("popstate", onPop);
+    };
+  }, []);
 
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: "auto" });

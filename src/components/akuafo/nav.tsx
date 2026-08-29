@@ -55,8 +55,8 @@ function ThemeToggle({ light }: { light?: boolean }) {
   );
 }
 
-async function fetchMyOrders(): Promise<Order[]> {
-  const res = await authFetch("/api/orders?role=buyer");
+async function fetchMyOrders(role: "BUYER" | "SUPPLIER"): Promise<Order[]> {
+  const res = await authFetch(`/api/orders?role=${role === "SUPPLIER" ? "supplier" : "buyer"}`);
   if (!res.ok) return [];
   const data = await res.json();
   return data.orders as Order[];
@@ -67,17 +67,24 @@ function NotificationBell({ light }: { light?: boolean }) {
   const { user } = useAuth();
   const openOrder = useAkuafo((s) => s.openOrder);
   const setView = useAkuafo((s) => s.setView);
-  const { data } = useQuery({
+  const { data, isPending } = useQuery({
     queryKey: ["orders", "notifications", user?.id],
-    queryFn: fetchMyOrders,
-    enabled: !!user && user.role === "BUYER",
+    queryFn: () => fetchMyOrders(user!.role === "SUPPLIER" ? "SUPPLIER" : "BUYER"),
+    enabled: !!user,
     staleTime: 30_000,
   });
 
-  const active = (data ?? []).filter((o) => o.status !== "DELIVERED").slice(0, 4);
-  const count = (data ?? []).filter((o) => o.status !== "DELIVERED").length;
+  /* Active = the order still needs someone's attention. Cancelled orders
+     never count, delivered ones are closed. Works for both roles now —
+     buyers track their requests, suppliers see lots awaiting action. */
+  const active = (data ?? [])
+    .filter((o) => o.status !== "DELIVERED" && o.status !== "CANCELLED")
+    .slice(0, 4);
+  const count = (data ?? []).filter(
+    (o) => o.status !== "DELIVERED" && o.status !== "CANCELLED",
+  ).length;
 
-  if (user?.role !== "BUYER") return null;
+  if (!user) return null;
 
   return (
     <DropdownMenu>
@@ -108,7 +115,9 @@ function NotificationBell({ light }: { light?: boolean }) {
         <div className="border-b border-border px-4 py-3">
           <p className="ax-label text-muted-foreground">Active orders</p>
         </div>
-        {active.length === 0 ? (
+        {isPending ? (
+          <div className="px-4 py-6 text-center text-sm text-muted-foreground">Loading orders…</div>
+        ) : active.length === 0 ? (
           <div className="px-4 py-6 text-center text-sm text-muted-foreground">
             No orders in progress.
           </div>
@@ -330,7 +339,8 @@ export function Nav() {
                     : "bg-forest text-cream hover:bg-forest-mid dark:bg-cream dark:text-ink dark:hover:bg-white",
                 )}
               >
-                Create account
+                <span className="hidden sm:inline">Create account</span>
+                <span className="sm:hidden">Join</span>
               </Button>
             </>
           )}

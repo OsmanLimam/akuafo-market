@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import Image from "next/image";
+import { SupplyImage } from "../supply-image";
 import { format, isAfter } from "date-fns";
 import { useAkuafo } from "../store";
 import { useSupplies } from "./hero";
@@ -37,7 +37,7 @@ function SupplyCard({ supply, large = false, className }: { supply: Supply; larg
       >
         <div className="relative overflow-hidden rounded-lg border border-border">
           <div className={cn("relative", large ? "aspect-[16/10]" : "aspect-[4/3]")}>
-            <Image
+            <SupplyImage
               src={supply.imageUrl}
               alt={`${supply.name} in ${supply.supplier.town}, ${supply.supplier.region}`}
               fill
