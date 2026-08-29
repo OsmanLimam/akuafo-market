@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
+import { motion, useReducedMotion } from "framer-motion";
 import { SupplyImage } from "../supply-image";
 import { useQuery } from "@tanstack/react-query";
 import { format, isSameMonth, subMonths } from "date-fns";
@@ -15,10 +16,10 @@ import {
   ArrowLink,
   CtaPrimary,
   DashboardSkeleton,
+  DataKey,
   EmptyState,
   ErrorState,
   Eyebrow,
-  StatBlock,
   StatusBadge,
 } from "../ui";
 import { formatCedis, formatKg, type Order } from "@/lib/types";
@@ -49,21 +50,56 @@ function QuickAction({
   icon: Icon,
   onClick,
   children,
+  className,
 }: {
   icon: React.ElementType;
   onClick: () => void;
   children: React.ReactNode;
+  className?: string;
 }) {
   return (
     <Button
       type="button"
       variant="outline"
       onClick={onClick}
-      className="ax-label h-10 cursor-pointer gap-2 rounded-lg border-forest/30 px-4 text-[10px] text-forest shadow-none transition-all hover:border-forest hover:bg-forest/5 active:scale-[0.98] dark:border-cream/40 dark:text-cream dark:hover:border-cream dark:hover:bg-cream/10"
+      className={cn(
+        "ax-label h-10 cursor-pointer gap-2 rounded-lg border-forest/30 px-4 text-[10px] text-forest shadow-none transition-all hover:border-forest hover:bg-forest/5 active:scale-[0.98] dark:border-cream/40 dark:text-cream dark:hover:border-cream dark:hover:bg-cream/10",
+        className,
+      )}
     >
       <Icon className="h-3.5 w-3.5" strokeWidth={1.75} aria-hidden />
       {children}
     </Button>
+  );
+}
+
+/* Bento tile: quiet card with a soft entrance stagger */
+function BentoCard({
+  index = 0,
+  className,
+  children,
+}: {
+  index?: number;
+  className?: string;
+  children: React.ReactNode;
+}) {
+  const reduced = useReducedMotion();
+  return (
+    <motion.div
+      initial={reduced ? false : { opacity: 0, y: 16 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{
+        duration: 0.45,
+        delay: reduced ? 0 : 0.05 + index * 0.06,
+        ease: [0.22, 1, 0.36, 1],
+      }}
+      className={cn(
+        "rounded-xl border border-border bg-card p-6 shadow-[0_1px_2px_rgba(19,28,22,0.04)] transition-shadow hover:shadow-[0_10px_36px_-14px_rgba(19,28,22,0.18)] sm:p-7",
+        className,
+      )}
+    >
+      {children}
+    </motion.div>
   );
 }
 
@@ -225,136 +261,165 @@ function BuyerDashboard() {
           </CtaPrimary>
         </header>
 
-        {/* ── Quick actions ──────────────────────────────────────────────── */}
-        <div className="flex flex-wrap items-center gap-3" role="group" aria-label="Quick actions">
-          <QuickAction icon={Search} onClick={() => openMarket()}>
-            Browse marketplace
-          </QuickAction>
-          <QuickAction icon={MapIcon} onClick={() => openMarket(undefined, "map")}>
-            Supply map
-          </QuickAction>
-          <QuickAction icon={Bookmark} onClick={() => setView("account")}>
-            Saved items
-          </QuickAction>
-        </div>
+            {orders.length === 0 ? (
+              /* ── Empty state: brand-new buyer ─────────────────────────────── */
+              <section aria-label="Getting started" className="mt-6 border-t border-border">
+                <EmptyState
+                  icon={Sprout}
+                  title="Your procurement journey starts here."
+                  description="Browse verified supply across Ghana and place your first request. Compare prices, quantities and harvest windows in one place."
+                  actionLabel="Explore produce"
+                  onAction={() => openMarket()}
+                  secondaryLabel="How it works"
+                  onSecondary={goHowItWorks}
+                />
+              </section>
+            ) : (
+              <>
+            {/* ── Bento overview ────────────────────────────────────────────── */}
+            <section
+              aria-label="Procurement overview"
+              className="mt-10 border-t border-border pt-10 lg:pt-12"
+            >
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 lg:gap-5">
+                <BentoCard index={0}>
+                  <DataKey>Active orders</DataKey>
+                  <span className="ax-data mt-3 block text-4xl font-medium leading-none tracking-tight text-ink dark:text-cream">
+                    <AnimatedNumber value={metrics.active.length} />
+                  </span>
+                  <span className="mt-2.5 block text-xs text-muted-foreground">Not yet delivered</span>
+                </BentoCard>
 
-        {orders.length === 0 ? (
-          /* ── Empty state: brand-new buyer ─────────────────────────────── */
-          <section aria-label="Getting started" className="mt-6 border-t border-border">
-            <EmptyState
-              icon={Sprout}
-              title="Your procurement journey starts here."
-              description="Browse verified supply across Ghana and place your first request. Compare prices, quantities and harvest windows in one place."
-              actionLabel="Explore produce"
-              onAction={() => openMarket()}
-              secondaryLabel="How it works"
-              onSecondary={goHowItWorks}
-            />
-          </section>
-        ) : (
-          <>
-            {/* ── Metrics ─────────────────────────────────────────────────── */}
-            <section aria-label="Account metrics" className="mt-10 border-t border-border">
-              <div className="grid grid-cols-2 gap-x-8 gap-y-10 py-10 lg:grid-cols-4 lg:py-12">
-                <StatBlock
-                  label="Active orders"
-                  value={<AnimatedNumber value={metrics.active.length} />}
-                  sub="Not yet delivered"
-                />
-                <StatBlock
-                  label="Pending requests"
-                  value={<AnimatedNumber value={metrics.pending} />}
-                  sub="Awaiting supplier confirmation"
-                />
-                <StatBlock
-                  label="Monthly spend"
-                  value={
+                <BentoCard index={1}>
+                  <DataKey>Pending requests</DataKey>
+                  <span className="ax-data mt-3 block text-4xl font-medium leading-none tracking-tight text-ink dark:text-cream">
+                    <AnimatedNumber value={metrics.pending} />
+                  </span>
+                  <span className="mt-2.5 block text-xs text-muted-foreground">Awaiting confirmation</span>
+                </BentoCard>
+
+                <BentoCard index={2}>
+                  <DataKey>Monthly spend</DataKey>
+                  <span className="ax-data mt-3 block text-4xl font-medium leading-none tracking-tight text-ink dark:text-cream">
                     <AnimatedNumber
                       value={metrics.monthlySpend}
                       format={(n) => formatCedis(Math.round(n), 0)}
                     />
-                  }
-                  sub="Last 30 days, incl. delivery"
-                />
-                <StatBlock
-                  label="Active suppliers"
-                  value={<AnimatedNumber value={metrics.activeSuppliers} />}
-                  sub="Across open orders"
-                />
-              </div>
-            </section>
+                  </span>
+                  <span className="mt-2.5 block text-xs text-muted-foreground">Last 30 days, incl. delivery</span>
+                </BentoCard>
 
-            {/* ── Current procurement ────────────────────────────────────── */}
-            <section aria-labelledby="current-procurement-heading" className="py-14 sm:py-16 lg:py-20">
-              <Eyebrow>Current procurement</Eyebrow>
-              <h2
-                id="current-procurement-heading"
-                className="mt-4 font-display text-3xl leading-[1.05] tracking-tight text-ink dark:text-cream sm:text-4xl"
-              >
-                In motion, <span className="italic">right now.</span>
-              </h2>
+                <BentoCard index={3}>
+                  <DataKey>Active suppliers</DataKey>
+                  <span className="ax-data mt-3 block text-4xl font-medium leading-none tracking-tight text-ink dark:text-cream">
+                    <AnimatedNumber value={metrics.activeSuppliers} />
+                  </span>
+                  <span className="mt-2.5 block text-xs text-muted-foreground">Across open orders</span>
+                </BentoCard>
 
-              <div className="mt-8">
-                {metrics.active.length === 0 ? (
-                  <EmptyState
-                    icon={Sprout}
-                    title="Nothing in motion right now."
-                    description="Every order on record is delivered. Place a new request to keep your supply flowing."
-                    actionLabel="Explore produce"
-                    onAction={() => openMarket()}
-                  />
-                ) : (
-                  <ul>
-                    {metrics.active.map((o) => (
-                      <li key={o.id} className="border-b border-border first:border-t">
-                        <div
-                          role="button"
-                          tabIndex={0}
-                          aria-label={`Track order ${o.code}, ${o.supply.name} from ${o.supply.supplier.name}`}
-                          onClick={() => openOrder(o.id)}
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter" || e.key === " ") {
-                              e.preventDefault();
-                              openOrder(o.id);
-                            }
-                          }}
-                          className="group flex cursor-pointer items-center gap-4 px-1 py-5 transition-colors hover:bg-forest/[0.03] dark:hover:bg-cream/[0.04] sm:gap-6"
+                {/* In motion */}
+                <BentoCard index={4} className="sm:col-span-2 lg:col-span-3">
+                  <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-2">
+                    <div>
+                      <DataKey>Current procurement</DataKey>
+                      <h3 className="mt-1.5 font-display text-2xl tracking-tight text-ink dark:text-cream">
+                        In motion, <span className="italic">right now.</span>
+                      </h3>
+                    </div>
+                    {metrics.active.length > 0 && (
+                      <ArrowLink onClick={() => openOrder(metrics.active[0].id)}>Track latest</ArrowLink>
+                    )}
+                  </div>
+
+                  <div className="mt-5">
+                    {metrics.active.length === 0 ? (
+                      <div className="flex flex-col items-start gap-2.5 rounded-lg bg-forest/[0.04] px-5 py-6 dark:bg-cream/[0.05]">
+                        <p className="text-sm text-ink dark:text-cream">
+                          Every order on record is delivered.
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          Place a new request to keep your supply flowing.
+                        </p>
+                        <QuickAction
+                          icon={Search}
+                          onClick={() => openMarket()}
+                          className="mt-1.5 w-full sm:w-auto"
                         >
-                          <span className="relative block h-16 w-16 shrink-0 overflow-hidden rounded-lg border border-border">
-                            <SupplyImage
-                              src={o.supply.imageUrl}
-                              alt={`${o.supply.name} in ${o.supply.supplier.town}, ${o.supply.supplier.region}`}
-                              fill
-                              sizes="64px"
-                            />
-                          </span>
-
-                          <span className="min-w-0 flex-1">
-                            <span className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-                              <span className="font-display text-2xl leading-none tracking-tight text-ink dark:text-cream">
-                                {o.supply.name}
+                          Explore produce
+                        </QuickAction>
+                      </div>
+                    ) : (
+                      <ul className="border-t border-border">
+                        {metrics.active.map((o) => (
+                          <li key={o.id} className="border-b border-border last:border-b-0">
+                            <div
+                              role="button"
+                              tabIndex={0}
+                              aria-label={`Track order ${o.code}, ${o.supply.name} from ${o.supply.supplier.name}`}
+                              onClick={() => openOrder(o.id)}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter" || e.key === " ") {
+                                  e.preventDefault();
+                                  openOrder(o.id);
+                                }
+                              }}
+                              className="group flex cursor-pointer items-center gap-4 px-1 py-4 transition-colors hover:bg-forest/[0.03] dark:hover:bg-cream/[0.04] sm:gap-5"
+                            >
+                              <span className="relative block h-14 w-14 shrink-0 overflow-hidden rounded-lg border border-border sm:h-16 sm:w-16">
+                                <SupplyImage
+                                  src={o.supply.imageUrl}
+                                  alt={`${o.supply.name} in ${o.supply.supplier.town}, ${o.supply.supplier.region}`}
+                                  fill
+                                  sizes="64px"
+                                />
                               </span>
-                              <span className="ax-data text-xs text-muted-foreground">
-                                {formatKg(o.quantityKg)} · {o.code}
-                              </span>
-                            </span>
-                            <span className="mt-1.5 block truncate text-xs text-muted-foreground">
-                              {o.supply.supplier.name} → {o.destination}
-                            </span>
-                          </span>
 
-                          <span className="flex shrink-0 flex-col items-end gap-2 sm:flex-row sm:items-center sm:gap-6">
-                            <StatusBadge status={o.status} />
-                            <span className="ax-data hidden text-sm text-ink dark:text-cream sm:block">
-                              {formatCedis(orderTotal(o), 0)}
-                            </span>
-                            <ArrowLink onClick={() => openOrder(o.id)}>Track</ArrowLink>
-                          </span>
-                        </div>
-                      </li>
-                    ))}
-                  </ul>
-                )}
+                              <span className="min-w-0 flex-1">
+                                <span className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                                  <span className="font-display text-xl leading-none tracking-tight text-ink dark:text-cream sm:text-2xl">
+                                    {o.supply.name}
+                                  </span>
+                                  <span className="ax-data text-xs text-muted-foreground">
+                                    {formatKg(o.quantityKg)} · {o.code}
+                                  </span>
+                                </span>
+                                <span className="mt-1.5 block truncate text-xs text-muted-foreground">
+                                  {o.supply.supplier.name} → {o.destination}
+                                </span>
+                              </span>
+
+                              <span className="flex shrink-0 flex-col items-end gap-1.5 sm:flex-row sm:items-center sm:gap-5">
+                                <StatusBadge status={o.status} />
+                                <span className="ax-data hidden text-sm text-ink dark:text-cream sm:block">
+                                  {formatCedis(orderTotal(o), 0)}
+                                </span>
+                              </span>
+                            </div>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                </BentoCard>
+
+                {/* Quick actions */}
+                <BentoCard index={5} className="sm:col-span-2 lg:col-span-1">
+                  <DataKey>Quick actions</DataKey>
+                  <div className="mt-5 flex flex-col gap-3">
+                    <QuickAction icon={Search} onClick={() => openMarket()} className="w-full">
+                      Browse marketplace
+                    </QuickAction>
+                    <QuickAction icon={MapIcon} onClick={() => openMarket(undefined, "map")} className="w-full">
+                      Supply map
+                    </QuickAction>
+                    <QuickAction icon={Bookmark} onClick={() => setView("account")} className="w-full">
+                      Saved items
+                    </QuickAction>
+                  </div>
+                  <p className="mt-5 border-t border-border pt-4 text-xs leading-relaxed text-muted-foreground">
+                    Verified lots across all 16 regions, updated live.
+                  </p>
+                </BentoCard>
               </div>
             </section>
 

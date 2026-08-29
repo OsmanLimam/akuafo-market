@@ -382,7 +382,7 @@ export function BuyFlow({
                   >
                     <span className="ax-label text-ink dark:text-cream">Delivery</span>
                     <span className="text-sm leading-relaxed text-muted-foreground">
-                      Delivered to your destination (fee shown next step)
+                      Delivered to your destination (estimated fee appears when you pick one)
                     </span>
                     {!supply.deliveryAvailable && (
                       <span className="ax-label text-[10px] text-destructive">

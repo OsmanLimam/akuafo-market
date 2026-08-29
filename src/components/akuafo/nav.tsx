@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useTheme } from "next-themes";
+import { motion } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
 import {
   Bell,
@@ -386,25 +387,41 @@ export function MobileTabBar() {
   return (
     <nav
       aria-label="Primary mobile"
-      className="fixed inset-x-0 bottom-0 z-50 border-t border-border bg-background/95 backdrop-blur-md lg:hidden"
-      style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
+      className="fixed inset-x-0 bottom-0 z-50 lg:hidden"
+      style={{
+        paddingBottom: "calc(env(safe-area-inset-bottom) + 12px)",
+        pointerEvents: "none",
+      }}
     >
-      <div className="grid h-16 grid-cols-4">
-        {tabs.map((t) => (
-          <button
-            key={t.label}
-            type="button"
-            onClick={t.onClick}
-            aria-current={t.active ? "page" : undefined}
-            className={cn(
-              "flex cursor-pointer flex-col items-center justify-center gap-1 transition-colors",
-              t.active ? "text-forest dark:text-terracotta" : "text-muted-foreground",
-            )}
-          >
-            <t.icon className="h-5 w-5" strokeWidth={1.5} aria-hidden />
-            <span className="ax-label text-[9px]">{t.label}</span>
-          </button>
-        ))}
+      {/* Liquid glass: floating pill, heavy blur, hairline border */}
+      <div
+        className="pointer-events-auto mx-3 overflow-hidden rounded-2xl border border-ink/10 bg-background/75 shadow-[0_16px_44px_-16px_rgba(19,28,22,0.4)] backdrop-blur-2xl dark:border-cream/10 dark:bg-[#1c2721]/80"
+      >
+        <div className="grid h-16 grid-cols-4">
+          {tabs.map((t) => (
+            <button
+              key={t.label}
+              type="button"
+              onClick={t.onClick}
+              aria-current={t.active ? "page" : undefined}
+              className={cn(
+                "relative flex cursor-pointer flex-col items-center justify-center gap-1 transition-colors",
+                t.active ? "text-forest dark:text-terracotta" : "text-muted-foreground",
+              )}
+            >
+              {t.active && (
+                <motion.span
+                  layoutId="tabbar-pill"
+                  transition={{ type: "spring", stiffness: 420, damping: 34 }}
+                  className="absolute inset-x-3 inset-y-2.5 rounded-xl bg-forest/[0.08] dark:bg-cream/[0.09]"
+                  aria-hidden
+                />
+              )}
+              <t.icon className="relative h-5 w-5" strokeWidth={1.5} aria-hidden />
+              <span className="ax-label relative text-[9px]">{t.label}</span>
+            </button>
+          ))}
+        </div>
       </div>
     </nav>
   );

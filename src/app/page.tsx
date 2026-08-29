@@ -95,8 +95,8 @@ function AppBody() {
       </AnimatePresence>
       <Footer />
       <MobileTabBar />
-      {/* Spacer so the mobile tab bar never covers content */}
-      <div className="h-16 lg:hidden" aria-hidden />
+      {/* Spacer so the floating glass tab bar never covers content */}
+      <div className="h-[76px] lg:hidden" aria-hidden />
     </div>
   );
 }
