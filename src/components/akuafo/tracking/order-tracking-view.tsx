@@ -7,6 +7,8 @@ import { format } from "date-fns";
 import {
   Building2,
   CheckCircle2,
+  Lock,
+  MessageCircle,
   Package,
   PackageX,
   Sprout,
@@ -16,6 +18,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Toaster } from "@/components/ui/sonner";
 import { authFetch } from "@/lib/api-client";
+import { formatGhanaPhone, whatsappLink } from "@/lib/phone";
 import { useAkuafo } from "../store";
 import { useAuth } from "../auth-store";
 import {
@@ -44,7 +47,7 @@ type OrderDetail = Order & { events: OrderEvent[] };
 /* ── Data ────────────────────────────────────────────────────────────────── */
 
 async function fetchOrder(id: string): Promise<OrderDetail> {
-  const res = await fetch(`/api/orders/${encodeURIComponent(id)}`);
+  const res = await authFetch(`/api/orders/${encodeURIComponent(id)}`);
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
     const err = new Error(data.error ?? "Failed to load order") as Error & { status?: number };
@@ -220,6 +223,31 @@ export function OrderTrackingView() {
 
   if (isError || !order) {
     const status = (error as (Error & { status?: number }) | null)?.status;
+    if (status === 401) {
+      return shell(
+        <EmptyState
+          icon={Lock}
+          title="Sign in to view this order."
+          description="Order tracking is only visible to the buyer and supplier on the order."
+          actionLabel="Sign in"
+          onAction={() => {
+            useAuth.getState().setRedirectAfterAuth("track");
+            setView("signin");
+          }}
+        />,
+      );
+    }
+    if (status === 403) {
+      return shell(
+        <EmptyState
+          icon={Lock}
+          title="This order belongs to a different account."
+          description={`You're signed in as ${user?.email ?? "another user"}. Orders are private to the buyer and supplier on them.`}
+          actionLabel="Back to my dashboard"
+          onAction={() => setView(backView)}
+        />,
+      );
+    }
     if (status === 404) {
       return shell(
         <EmptyState
@@ -233,6 +261,24 @@ export function OrderTrackingView() {
     }
     return shell(<ErrorState thing="this order" onRetry={() => refetch()} />);
   }
+
+  /* Supplier-only controls: the signed-in user must be the supplier of THIS
+     order. Buyers get a read-only panel instead (they can never advance). */
+  const canAdvance =
+    !!user &&
+    user.role === "SUPPLIER" &&
+    !!user.supplierId &&
+    order.supply.supplier.id === user.supplierId;
+  const counterpartyPhone =
+    user?.role === "SUPPLIER"
+      ? (order.contacts?.buyerPhone ?? "")
+      : (order.contacts?.supplierPhone ?? "");
+  const waHref = counterpartyPhone
+    ? whatsappLink(
+        counterpartyPhone,
+        `Hello! About Akuafo Market order ${order.code} — ${order.supply.name}, ${formatKg(order.quantityKg)}.`,
+      )
+    : null;
 
   return shell(
     <>
@@ -380,33 +426,46 @@ export function OrderTrackingView() {
             </div>
           </section>
 
-          {/* ── Supplier action ──────────────────────────────────────────── */}
-          <section
-            aria-label="Supplier action"
-            className="rounded-xl border border-dashed border-terracotta/50 p-5 dark:border-terracotta/50"
-          >
-            <p className="ax-label text-terracotta-deep dark:text-terracotta">Supplier action</p>
-            {nextStatus ? (
-              <div className="mt-3 flex flex-wrap items-center gap-4">
-                <Button
-                  type="button"
-                  onClick={() => advance.mutate()}
-                  disabled={advance.isPending}
-                  className="ax-label h-11 cursor-pointer rounded-lg bg-forest px-5 text-[11px] text-cream shadow-none transition-all hover:bg-forest-mid active:scale-[0.98] focus-visible:ring-2 focus-visible:ring-terracotta dark:bg-cream dark:text-ink dark:hover:bg-white dark:focus-visible:ring-gold"
-                >
-                  {advance.isPending ? "Advancing…" : `Advance to ${STATUS_LABEL[nextStatus]}`}
-                </Button>
-                <p className="text-xs text-muted-foreground">
-                  Move {order.code} one step along its journey.
+          {/* ── Fulfilment controls: supplier-only ────────────────────── */}
+          {canAdvance ? (
+            <section
+              aria-label="Supplier action"
+              className="rounded-xl border border-dashed border-terracotta/50 p-5 dark:border-terracotta/50"
+            >
+              <p className="ax-label text-terracotta-deep dark:text-terracotta">Supplier action</p>
+              {nextStatus ? (
+                <div className="mt-3 flex flex-wrap items-center gap-4">
+                  <Button
+                    type="button"
+                    onClick={() => advance.mutate()}
+                    disabled={advance.isPending}
+                    className="ax-label h-11 cursor-pointer rounded-lg bg-forest px-5 text-[11px] text-cream shadow-none transition-all hover:bg-forest-mid active:scale-[0.98] focus-visible:ring-2 focus-visible:ring-terracotta dark:bg-cream dark:text-ink dark:hover:bg-white dark:focus-visible:ring-gold"
+                  >
+                    {advance.isPending ? "Advancing…" : `Advance to ${STATUS_LABEL[nextStatus]}`}
+                  </Button>
+                  <p className="text-xs text-muted-foreground">
+                    Move {order.code} one step along its journey.
+                  </p>
+                </div>
+              ) : (
+                <p className="mt-3 flex items-center gap-2 text-sm text-forest dark:text-olive-light">
+                  <CheckCircle2 className="h-4 w-4" strokeWidth={1.75} aria-hidden />
+                  Order completed.
                 </p>
-              </div>
-            ) : (
-              <p className="mt-3 flex items-center gap-2 text-sm text-forest dark:text-olive-light">
-                <CheckCircle2 className="h-4 w-4" strokeWidth={1.75} aria-hidden />
-                Order completed.
+              )}
+            </section>
+          ) : (
+            <section
+              aria-label="Order updates"
+              className="rounded-xl border border-border bg-card p-5"
+            >
+              <p className="ax-label text-muted-foreground">Order updates</p>
+              <p className="mt-3 max-w-prose text-sm leading-relaxed text-muted-foreground">
+                {order.supply.supplier.name} updates this order as it moves through fulfilment —
+                each step lands on the timeline above. You don't need to do anything right now.
               </p>
-            )}
-          </section>
+            </section>
+          )}
         </div>
 
         {/* ── Right: summary ────────────────────────────────────────────── */}
@@ -469,6 +528,33 @@ export function OrderTrackingView() {
               <StatusBadge status={order.status} />
               <span className="ax-data text-xs text-muted-foreground">{order.destination}</span>
             </div>
+            {waHref && (
+              <div className="mt-4 border-t border-border pt-4">
+                <p className="ax-label text-muted-foreground">Need to talk?</p>
+                <a
+                  href={waHref}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="group mt-3 flex items-center gap-3 rounded-lg border border-border p-3 transition-colors hover:border-forest/50 dark:hover:border-cream/40"
+                >
+                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#25D366]/12 text-[#128C4B] dark:bg-[#25D366]/15 dark:text-[#4ADE80]">
+                    <MessageCircle className="h-4 w-4" strokeWidth={1.75} aria-hidden />
+                  </span>
+                  <span className="min-w-0">
+                    <span className="ax-label block text-[11px] text-ink dark:text-cream">
+                      WhatsApp {user?.role === "SUPPLIER" ? "buyer" : "supplier"}
+                    </span>
+                    <span className="ax-data block truncate text-xs text-muted-foreground">
+                      {formatGhanaPhone(counterpartyPhone)}
+                    </span>
+                  </span>
+                </a>
+                <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
+                  Opens WhatsApp with the order reference pre-filled — fastest way to sort
+                  delivery, grading or payment questions.
+                </p>
+              </div>
+            )}
           </div>
         </aside>
       </div>

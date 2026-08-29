@@ -8,6 +8,7 @@ import { useAkuafo, type View } from "../store";
 import { useAuth, type AuthUser } from "../auth-store";
 import { AuthShell } from "./auth-shell";
 import { CtaOutline, CtaPrimary, Eyebrow } from "../ui";
+import { normalizeGhanaPhone } from "@/lib/phone";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
@@ -70,6 +71,9 @@ export function SignUpView() {
       if (!businessName.trim())
         return role === "SUPPLIER" ? "Enter your farm or business name." : "Enter your business name.";
       if (!location.trim()) return "Enter your location.";
+      if (!phone.trim()) return "Enter your phone number — it's how business contacts reach you.";
+      if (!normalizeGhanaPhone(phone))
+        return "Enter a valid Ghana phone number, e.g. 020 123 4567 or +233 20 123 4567.";
     }
     return null;
   };
@@ -380,7 +384,7 @@ export function SignUpView() {
                 </div>
                 <div className="flex flex-col gap-2">
                   <Label htmlFor="signup-phone" className={fieldLabel}>
-                    Phone <span className="font-normal normal-case tracking-normal">(optional)</span>
+                    Phone / WhatsApp
                   </Label>
                   <Input
                     id="signup-phone"
@@ -388,9 +392,13 @@ export function SignUpView() {
                     autoComplete="tel"
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
-                    placeholder="e.g. +233 20 000 0000"
+                    placeholder="e.g. 020 123 4567"
+                    aria-invalid={!!phone && !normalizeGhanaPhone(phone)}
                     className={inputCls}
                   />
+                  <p className="text-xs text-muted-foreground">
+                    For delivery calls and WhatsApp updates. Required.
+                  </p>
                 </div>
                 <fieldset className="flex flex-col gap-3">
                   <legend className={fieldLabel}>

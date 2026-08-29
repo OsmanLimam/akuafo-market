@@ -76,6 +76,11 @@ export type Order = {
     };
   };
   events?: OrderEvent[];
+  /** Present on GET /api/orders/[id]: phone digits for WhatsApp click-to-chat. */
+  contacts?: {
+    buyerPhone: string; // international digits, e.g. 233201234567
+    supplierPhone: string;
+  };
 };
 
 export type SupplierProfile = SupplierSummary & {

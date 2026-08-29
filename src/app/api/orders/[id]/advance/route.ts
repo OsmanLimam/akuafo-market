@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
+import { getSessionUser, tokenFromRequest } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
@@ -13,11 +14,26 @@ const NOTES: Record<string, string> = {
   DELIVERED: "Delivered and receipted by buyer",
 };
 
-export async function POST(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
+    // Only a signed-in supplier who owns this order may advance it. Buyers
+    // follow the timeline read-only; anonymous callers are rejected outright.
+    const user = await getSessionUser(tokenFromRequest(req));
+    if (!user)
+      return NextResponse.json({ error: "Sign in to update this order" }, { status: 401 });
+
     const { id } = await params;
-    const order = await db.order.findFirst({ where: { OR: [{ id }, { code: id }] } });
+    const order = await db.order.findFirst({
+      where: { OR: [{ id }, { code: id }] },
+      include: { supply: { select: { supplierId: true } } },
+    });
     if (!order) return NextResponse.json({ error: "Order not found" }, { status: 404 });
+
+    if (!user.supplierId || order.supply.supplierId !== user.supplierId)
+      return NextResponse.json(
+        { error: "Only the supplier of this order can advance it" },
+        { status: 403 },
+      );
 
     const idx = JOURNEY.indexOf(order.status as (typeof JOURNEY)[number]);
     if (idx === -1 || idx >= JOURNEY.length - 1)

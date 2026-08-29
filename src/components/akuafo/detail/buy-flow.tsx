@@ -8,6 +8,7 @@ import { useAkuafo } from "../store";
 import { useAuth } from "../auth-store";
 import { AnimatedNumber, CtaPrimary, DataKey, SupplyMeter } from "../ui";
 import { authFetch } from "@/lib/api-client";
+import { DESTINATIONS, deliveryFeeFor } from "@/lib/delivery";
 import { formatCedis, formatKg, type Order, type Supply } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
@@ -22,22 +23,8 @@ import {
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
 
-/* ── Destination presets with reference delivery fees ─────────────────── */
-
-const DESTINATIONS = [
-  { name: "Odorna, Accra", fee: 380 },
-  { name: "Kasoa, Central Region", fee: 420 },
-  { name: "Tema Community 25", fee: 450 },
-  { name: "Adum, Kumasi", fee: 350 },
-  { name: "Ho Industrial Area", fee: 750 },
-];
-
-const FEE_BY_DESTINATION: Record<string, number> = Object.fromEntries(
-  DESTINATIONS.map((d) => [d.name, d.fee]),
-);
-
-/** Flat estimate for buyer-entered destinations outside the preset list. */
-const CUSTOM_FEE = 420;
+/* ── Destination presets come from the shared fee lib — the server is the
+      pricing authority; this copy is display-only. ────────────────────── */
 
 const QUICK_QTY = [100, 250, 500, 1000];
 
@@ -103,13 +90,9 @@ export function BuyFlow({
   const [submitting, setSubmitting] = useState(false);
 
   const productValue = qty * supply.pricePerKg;
-  const isPreset = destination in FEE_BY_DESTINATION;
+  const isPreset = DESTINATIONS.some((d) => d.name === destination);
   const deliveryFee =
-    method === "PICKUP"
-      ? 0
-      : destination.trim()
-        ? (FEE_BY_DESTINATION[destination] ?? CUSTOM_FEE)
-        : 0;
+    method === "PICKUP" ? 0 : destination.trim() ? deliveryFeeFor(destination) : 0;
   const qtyTooLow = qty < supply.minOrderKg;
   const qtyTooHigh = qty > supply.quantityKg;
 
@@ -162,7 +145,6 @@ export function BuyFlow({
           quantityKg: qty,
           deliveryMethod: method,
           destination: destination.trim(),
-          deliveryFee,
         }),
       });
 
